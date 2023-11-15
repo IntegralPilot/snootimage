@@ -8,6 +8,9 @@ use bootimage::{
 use std::process;
 use std::{env, path::Path};
 
+mod final_image;
+mod rootfs;
+
 pub fn main() -> Result<()> {
     let mut raw_args = env::args();
 
@@ -82,7 +85,7 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
         .to_str()
         .ok_or_else(|| anyhow!("kernel executable file stem is not valid UTF-8"))?;
 
-    let output_bin_path = exe_parent.join(format!("bootimage-{}.bin", bin_name));
+    let output_bin_path = exe_parent.join(format!("bootstart-{}.bin", bin_name));
     let executable_canonicalized = args.executable.canonicalize().with_context(|| {
         format!(
             "failed to canonicalize executable path `{}`",
@@ -105,7 +108,15 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
         args.quiet,
     )?;
 
-    let exit_code = run::run(config, args, &output_bin_path, is_test)?;
+    let rootfs_file_name = exe_parent.join(format!("rootfs-{}.img", bin_name));
+
+    let final_image_name = exe_parent.join(format!("bootimage-{}.bin", bin_name));
+
+    rootfs::RootFS::create_image(rootfs_file_name.clone()).unwrap();
+
+    final_image::FinalImage::create(final_image_name.clone(), output_bin_path, rootfs_file_name).unwrap();
+
+    let exit_code = run::run(config, args, &final_image_name, is_test)?;
 
     Ok(exit_code)
 }
