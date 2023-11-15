@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use bootimage::{
+use snootimage::{
     args::{BuildArgs, BuildCommand},
     builder::Builder,
     config, help,

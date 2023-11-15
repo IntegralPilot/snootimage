@@ -20,10 +20,9 @@ impl FinalImage {
         output_file.write_all(&buffer)?;
         output_file.write_all(&buffer)?;
 
-        // Create and write one FE sector
+        // Create and write one FE sector (this should be 0xFE repeated 512 times)
         buffer.clear();
-        buffer.push(0xFE);
-        buffer.resize(511, 0); // fill the remaining space with zeros
+        buffer.resize(512, 0xFE); // fill the buffer with 0xFE
         output_file.write_all(&buffer)?;
 
         // Read and write rootfs.img (if you have this file)

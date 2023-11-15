@@ -1,6 +1,6 @@
-/// Executable for `bootimage runner`.
+/// Executable for `snootimage runner`.
 use anyhow::{anyhow, Context, Result};
-use bootimage::{
+use snootimage::{
     args::{RunnerArgs, RunnerCommand},
     builder::Builder,
     config, help, run,
@@ -13,19 +13,8 @@ mod rootfs;
 
 pub fn main() -> Result<()> {
     let mut raw_args = env::args();
-
-    let executable_name = raw_args
-        .next()
-        .ok_or_else(|| anyhow!("no first argument (executable name)"))?;
-    let file_stem = Path::new(&executable_name)
-        .file_stem()
-        .and_then(|s| s.to_str());
-    if file_stem != Some("bootimage") {
-        return Err(anyhow!(
-            "Unexpected executable name: expected `bootimage`, got: `{:?}`",
-            file_stem
-        ));
-    }
+    raw_args.next(); // skip executable name
+    println!("{:?}", raw_args);
     match raw_args.next().as_deref() {
         Some("runner") => {},
         Some("--help") | Some("-h") => {
@@ -37,10 +26,10 @@ pub fn main() -> Result<()> {
             return Ok(())
         }
         Some(other) => return Err(anyhow!(
-            "Unsupported subcommand `{:?}`. See `bootimage --help` for an overview of supported subcommands.", other
+            "Unsupported subcommand `{:?}`. See `snootimage --help` for an overview of supported subcommands.", other
         )),
         None => return Err(anyhow!(
-            "Please invoke bootimage with a subcommand. See `bootimage --help` for more information."
+            "Please invoke snootimage with a subcommand. See `snootimage --help` for more information."
         )),
     }
 
@@ -110,7 +99,7 @@ pub(crate) fn runner(args: RunnerArgs) -> Result<i32> {
 
     let rootfs_file_name = exe_parent.join(format!("rootfs-{}.img", bin_name));
 
-    let final_image_name = exe_parent.join(format!("bootimage-{}.bin", bin_name));
+    let final_image_name = exe_parent.join(format!("snootimage-{}.bin", bin_name));
 
     rootfs::RootFS::create_image(rootfs_file_name.clone()).unwrap();
 
