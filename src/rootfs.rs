@@ -4,49 +4,53 @@ use std::path::PathBuf;
 pub struct RootFS;
 
 impl RootFS {
-    fn handle_command_result(result: std::io::Result<std::process::ExitStatus>, error_message: &str) -> Result<(), String> {
-        match result {
-            Ok(exit_status) => {
-                if exit_status.code().unwrap_or(1) != 0 {
-                    return Err(error_message.to_string());
-                } else {
-                    return Ok(());
-                }
-            },
-            Err(_) => {
-                return Err(error_message.to_string());
-            }
-        }
-    }
     pub fn create_image(rootfs_file_name: PathBuf) -> Result<(), String> {
-        #[cfg(not(target_os = "linux"))]
-        return Err(String::from("RootFS::create_image() is only supported on Linux"));
+        let dd_command = if cfg!(target_os = "windows") {
+            format!("C:\\msys64\\usr\\bin\\{}", "dd")
+        } else {
+            "dd".to_string()
+        };
+        let mcopy_command = if cfg!(target_os = "windows") {
+            format!("C:\\msys64\\bin\\{}", "mcopy")
+        } else {
+            "mcopy".to_string()
+        };
+        let mformat_command = if cfg!(target_os = "windows") {
+            format!("C:\\msys64\\bin\\{}", "mformat")
+        } else {
+            "mformat".to_string()
+        };
+       // Initialize MSYS2 if not on Linux
+        if !cfg!(target_os = "linux") {
+            let _msys2_status = Command::new("cmd")
+                    .args(&["/C", "'C:\\msys64\\usr\\bin\\pacman.exe -Syu --noconfirm mingw-w64-x86_64-mtools'"])
+                    .stdout(Stdio::null())
+                    .stderr(Stdio::null())
+                    .spawn();
+        }
 
         // Create a 2 MB file
-        let dd_status = Command::new("dd")
+        let _dd_status = Command::new(dd_command)
             .arg("if=/dev/zero")
             .arg(format!("of={}", rootfs_file_name.to_str().unwrap()).as_str())
             .arg("bs=1K")
             .arg("count=10")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status();
+            .spawn();
 
-        RootFS::handle_command_result(dd_status, "Error running dd command")?;
 
         // Put a FAT filesystem on it
-        let mformat_status = Command::new("mformat")
+        let _mformat_status = Command::new(mformat_command)
             .arg("-i")
             .arg(rootfs_file_name.to_str().unwrap())
             .arg("::")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status();
-
-        RootFS::handle_command_result(mformat_status, "Error running mformat command")?;
+            .spawn();
 
         // Copy files from ./rootfs to the image
-        let mcopy_status = Command::new("mcopy")
+        let _mcopy_status = Command::new(mcopy_command)
             .arg("-i")
             .arg(rootfs_file_name.to_str().unwrap())
             .arg("-s")
@@ -56,9 +60,7 @@ impl RootFS {
             .arg("::")
             .stdout(Stdio::null())
             .stderr(Stdio::null())
-            .status();
-
-        RootFS::handle_command_result(mcopy_status, "Error running mcopy command")?;
+            .spawn();
 
         Ok(())
     }
